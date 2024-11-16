@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.settings import DATABASE_URL
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "default_database_url")
+
 
 # Создание объекта подключения к базе данных
 engine = create_engine(DATABASE_URL)
