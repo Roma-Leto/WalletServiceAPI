@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 # Основной класс для SQLAlchemy моделей
 Base = declarative_base()
+
 
 # Модель кошелька в базе данных
 class Wallet(Base):

@@ -52,8 +52,13 @@ def create_operation(wallet_uuid: str, request: WalletRequest,
         # Возвращаем успешный ответ с информацией о транзакции
         return {"status": "success", "transaction": transaction}
 
-    except (SQLAlchemyError, ValueError) as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except SQLAlchemyError as e:
+        # Печатаем исключение и возвращаем ошибку 500
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    except Exception as e:
+        # Для других ошибок
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 # Эндпоинт для получения баланса кошелька
