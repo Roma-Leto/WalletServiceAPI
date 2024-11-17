@@ -152,7 +152,9 @@ curl -X 'GET' \
 │   └── changelog.xml
 ├── Dockerfile
 ├── docker-compose.yml
+├── .env
 └── requirements.txt
+
 ```
 
 ## Лицензия
