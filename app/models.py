@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 # Основной класс для SQLAlchemy моделей
 Base = declarative_base()
 
 
-# Модель кошелька в базе данных
 class Wallet(Base):
     """
     Модель кошелька, которая представляет таблицу "wallets" в базе данных.

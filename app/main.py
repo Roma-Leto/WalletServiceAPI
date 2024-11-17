@@ -1,19 +1,19 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud import process_transaction, get_balance
-from app.database import engine, get_db
-from app.models import Base
+from app.database import get_db, lifespan_handler
 
-# Инициализация FastAPI приложения
-app = FastAPI()
+from fastapi.responses import JSONResponse
 
-# Создание всех таблиц в базе данных (если они еще не существуют)
-Base.metadata.create_all(bind=engine)
+# Инициализация FastAPI приложения с использованием lifespan
+app = FastAPI(
+    lifespan=lifespan_handler  # Используем обработчик lifespan
+)
 
 
-# Модель запроса для операций с кошельком (с помощью Pydantic)
 class WalletRequest(BaseModel):
     """
     Модель, описывающая структуру запроса для выполнения операций с кошельком.
@@ -28,10 +28,9 @@ class WalletRequest(BaseModel):
     amount: int  # Сумма операции
 
 
-# Эндпоинт для создания операции с кошельком (пополнение или снятие средств)
 @app.post("/api/v1/wallets/{wallet_uuid}/operation")
-def create_operation(wallet_uuid: str, request: WalletRequest,
-                     db: Session = Depends(get_db)):
+async def create_operation(wallet_uuid: str, request: WalletRequest,
+                           db: AsyncSession = Depends(get_db)):
     """
     Эндпоинт для выполнения операции с кошельком. Обрабатывает операции пополнения
     и снятия средств на основе входных данных.
@@ -44,10 +43,9 @@ def create_operation(wallet_uuid: str, request: WalletRequest,
     - Статус выполнения операции (успех/неудача) и данные о транзакции.
     """
     try:
-
         # Обработка транзакции (пополнение или снятие средств)
-        transaction = process_transaction(db, wallet_uuid, request.operationType,
-                                          request.amount)
+        transaction = await process_transaction(db, wallet_uuid, request.operationType,
+                                                request.amount)
 
         # Возвращаем успешный ответ с информацией о транзакции
         return {"status": "success", "transaction": transaction}
@@ -61,9 +59,8 @@ def create_operation(wallet_uuid: str, request: WalletRequest,
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-# Эндпоинт для получения баланса кошелька
 @app.get("/api/v1/wallets/{wallet_uuid}")
-def get_wallet_balance(wallet_uuid: str, db: Session = Depends(get_db)):
+async def get_wallet_balance(wallet_uuid: str, db: AsyncSession = Depends(get_db)):
     """
     Эндпоинт для получения текущего баланса кошелька по его UUID.
 
@@ -74,8 +71,8 @@ def get_wallet_balance(wallet_uuid: str, db: Session = Depends(get_db)):
     - Баланс кошелька или ошибку, если кошелек не найден.
     """
     try:
-        # Получаем баланс кошелька с использованием функции get_balance
-        balance = get_balance(db, wallet_uuid)
+        # Получаем баланс кошелька
+        balance = await get_balance(db, wallet_uuid)
 
         # Если кошелек не найден, возвращаем ошибку с кодом 404
         if balance is None:
@@ -87,3 +84,15 @@ def get_wallet_balance(wallet_uuid: str, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         # В случае ошибки в базе данных возвращаем ошибку с кодом 500
         raise HTTPException(status_code=500, detail=f"Database error. {e}")
+
+
+# Обработка ошибок для неверного JSON
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Invalid JSON provided. Please check the structure and data types.",
+            "errors": exc.errors()  # Детали ошибки валидации
+        }
+    )
