@@ -25,9 +25,9 @@ async def process_transaction(db: AsyncSession, wallet_uuid: str, operation_type
     недостатка средств, или если указан неверный тип операции.
     - HTTPException(500): Если произошла ошибка базы данных.
     """
-    # Получаем кошелек по UUID с блокировкой строки для предотвращения параллельных изменений
+    # Получаем кошелек по UUID
     async with db.begin():  # Используем асинхронную транзакцию
-        result = await db.execute(select(Wallet).filter(Wallet.uuid == wallet_uuid).with_for_update())
+        result = await db.execute(select(Wallet).filter(Wallet.uuid == wallet_uuid))
         wallet = result.scalar_one_or_none()  # Получаем единственный результат
 
         if not wallet:
@@ -69,7 +69,7 @@ async def get_balance(db: AsyncSession, wallet_uuid: str):
     """
     # Получаем кошелек по его UUID
     result = await db.execute(select(Wallet).filter(Wallet.uuid == wallet_uuid))
-    wallet = result.scalar_one_or_none()
+    wallet = result.scalar_one_or_none()  # Получаем результат запроса
 
     if not wallet:
         return None

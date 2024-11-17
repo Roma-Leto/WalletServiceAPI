@@ -27,8 +27,8 @@ AsyncSessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-@asynccontextmanager
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+# Функция получения сессии
+async def get_db() -> AsyncSession:
     """Создает и закрывает сессию базы данных"""
     async with AsyncSessionLocal() as session:
         yield session
