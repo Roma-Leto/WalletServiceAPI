@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:13
+    container_name: db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -9,6 +10,8 @@ services:
       - wallet_data:/var/lib/postgresql/data
     networks:
       - wallet-network
+    ports:
+      - "5432:5432"
 
   app:
     build: .
@@ -18,6 +21,22 @@ services:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
       - db
+    networks:
+      - wallet-network
+
+  liquibase:
+    image: liquibase/liquibase
+    depends_on:
+      - db
+    volumes:
+      - ./migrations:/liquibase
+      - ./wait-for-db.sh:/wait-for-db.sh
+    command: >
+      --url=jdbc:postgresql://db:5432/wallet_db
+      --username=${POSTGRES_USER}
+      --password=${POSTGRES_PASSWORD}
+      --changeLogFile=/liquibase/changelog.xml
+      update
     networks:
       - wallet-network
 
